@@ -1,4 +1,4 @@
-// usage: ./main swan.png swan.csv
+// usage: ./main swan.png swan.csv brushwidth
 
 #include "graph.h"
 #include "image.h"
