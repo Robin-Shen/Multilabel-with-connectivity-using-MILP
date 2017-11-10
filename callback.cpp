@@ -19,11 +19,11 @@ try {
       int solcnt = getIntInfo(GRB_CB_MIPSOL_SOLCNT); // solution number
       */
 	  int nodecnt = (int) getDoubleInfo(GRB_CB_MIPSOL_NODCNT);
-	  std::cout << "We arrive at one integer node #"<<nodecnt<<std::endl;
+	  //std::cout << "We arrive at one integer node #"<<nodecnt<<std::endl;
       for (int itr=0; itr<root_nodes.size(); itr++)
       {
       	// generate a subgraph to store commponents
-		std::cout << "# of Root nodes: " << root_nodes.size() <<std::endl;
+	//std::cout << "# of Root nodes: " << root_nodes.size() <<std::endl;
         Graph& subgraph = graph.create_subgraph();
 
 		// component records component number of each vertex in graph
@@ -36,11 +36,11 @@ try {
           if(std::abs(getSolution(graph[*p.first].var[itr]) - 1.0) < EPS)
           	{
 			 add_vertex(*p.first, subgraph);
-			 std::cout << *p.first << " is equal to 1;" << std::endl;
+			 //std::cout << *p.first << " is equal to 1;" << std::endl;
 			}
         }
 
-		std::cout << "# of nodes in subgraph:"<< num_vertices(subgraph) <<std::endl;
+		//std::cout << "# of nodes in subgraph:"<< num_vertices(subgraph) <<std::endl;
 		/* print subgraph		
 		for (auto p = vertices(subgraph); p.first != p.second; ++p.first)
         {
@@ -52,10 +52,10 @@ try {
 
         size_t num_components = connected_components(subgraph, &local_component[0]);
 
-		std::cout << "# of local_component: "<< num_components <<std::endl;
-		for (auto p = vertices(subgraph); p.first != p.second; ++p.first)
+		//std::cout << "# of local_component: "<< num_components <<std::endl;
+		//for (auto p = vertices(subgraph); p.first != p.second; ++p.first)
         {
-          std::cout << " " <<local_component[*p.first];
+          //std::cout << " " <<local_component[*p.first];
         }
 
 		// local to global
@@ -66,23 +66,23 @@ try {
 
 		
 		// printout all component number
-		std::cout << "# of component: "<< num_components <<std::endl;
-		for (auto p = vertices(graph); p.first != p.second; ++p.first)
+		//std::cout << "# of component: "<< num_components <<std::endl;
+		//for (auto p = vertices(graph); p.first != p.second; ++p.first)
         {
-          std::cout << " " <<component[*p.first];
+          //std::cout << " " <<component[*p.first];
         }
 
-		std::cout << std::endl;
+		//std::cout << std::endl;
 
         if (num_components == 1)
         {
-          	std::cout << "Segment " << itr+1 <<" is connected for now."<<std::endl;
+          	//std::cout << "Segment " << itr+1 <<" is connected for now."<<std::endl;
 			//continue;
         }
         else
 		{
 			
-			std::cout << "# of components is: " << num_components << ", start to find violated constratints for segmemt "<<itr+1<<std::endl;
+			//std::cout << "# of components is: " << num_components << ", start to find violated constratints for segmemt "<<itr+1<<std::endl;
 
 			//record the component # of each component
 			std::vector<int> component_num;
@@ -132,14 +132,14 @@ void myGRBCallback::find_cuts(Graph& graph, Graph& subgraph, std::vector<int> co
                 }
           }
 
-  std::cout << "Root component : " <<std::endl;
-  for (int i =0; i< root_component.size(); i++)
-	std::cout << " " << root_component[i] << std::endl;
+  //std::cout << "Root component : " <<std::endl;
+  //for (int i =0; i< root_component.size(); i++)
+	//std::cout << " " << root_component[i] << std::endl;
 
           
-  std::cout << "Component number : " <<std::endl;
-  for (int i =0; i< component_num.size(); i++)
-	std::cout << " " << component_num[i] << std::endl;
+  //std::cout << "Component number : " <<std::endl;
+  //for (int i =0; i< component_num.size(); i++)
+	//std::cout << " " << component_num[i] << std::endl;
 
 
 
@@ -148,16 +148,16 @@ void myGRBCallback::find_cuts(Graph& graph, Graph& subgraph, std::vector<int> co
       {
 	    	// find all nodes in this component， store in superpixels
             std::vector<Graph::vertex_descriptor> superpixels; 
-			std::cout << "Superpixel # " << itr_component <<std::endl;
+			//std::cout << "Superpixel # " << itr_component <<std::endl;
             for (auto p = vertices(graph); p.first != p.second; ++p.first)
 	    	{
                 if (component[*p.first] == component_num[itr_component])
                 {
                     superpixels.push_back(*p.first);
-					std::cout << " "<< *p.first;
+					//std::cout << " "<< *p.first;
                 }
 	    	}
-  		std::cout <<std::endl<< "We are in segment " << itr+1 <<" component "<<itr_component+1<< " out of "<< num_components <<std::endl;
+  		//std::cout <<std::endl<< "We are in segment " << itr+1 <<" component "<<itr_component+1<< " out of "<< num_components <<std::endl;
 	    // start to run BFS from s, it stops when reaches t
 	    std::queue<Graph::vertex_descriptor> Q;
 	    Graph::vertex_descriptor s = superpixels[(Graph::vertex_descriptor)0];
@@ -192,9 +192,9 @@ void myGRBCallback::find_cuts(Graph& graph, Graph& subgraph, std::vector<int> co
             
 	    TerminateBFS:    
   		// output distance
-		std::cout <<std::endl<< "Distance: "<<std::endl;
-		for (auto p = vertices(graph); p.first != p.second; ++p.first)
-	    	std::cout << " " <<distance[*p.first];
+		//std::cout <<std::endl<< "Distance: "<<std::endl;
+		//for (auto p = vertices(graph); p.first != p.second; ++p.first)
+	    	//std::cout << " " <<distance[*p.first];
 
 	    // check every vertx the distance <= # of component
 	    int upper_bound = superpixels.size();
@@ -213,15 +213,15 @@ void myGRBCallback::find_cuts(Graph& graph, Graph& subgraph, std::vector<int> co
 			else
 		  		{
 				 cons[distance[vertex]-1] += graph[(Graph::vertex_descriptor)vertex].var[itr];
-				 std::cout <<vertex<< " added to cut "<< distance[vertex]-1 <<std::endl;
+				 //std::cout <<vertex<< " added to cut "<< distance[vertex]-1 <<std::endl;
 				}
 	      }
 	    }
   
   
 	    // start to add violated constratints
-		std::cout << "start to add violated constratints for segment "<<itr+1<<std::endl;
-		std::cout << "Upper bound is "<<upper_bound<<std::endl;
+		//std::cout << "start to add violated constratints for segment "<<itr+1<<std::endl;
+		//std::cout << "Upper bound is "<<upper_bound<<std::endl;
 	    for (int i=0; i < upper_bound; i++)
 	      for (int j=0; j < superpixels.size(); j++)
 			addLazy( cons[i]>= graph[superpixels[j]].var[itr]);

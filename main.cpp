@@ -1,4 +1,4 @@
-// usage: ./main swan.png swan.csv brushwidth
+// usage: ./main swan.png swan.csv int(brushwidth) double(timelimit)
 
 #include "graph.h"
 #include "image.h"
@@ -80,7 +80,8 @@ void master_problem(
     Graph& rag, ///< the graph of superpixels
     int numseg,
     std::vector<vector<Graph::vertex_descriptor>> root_nodes, ///< master nodes of all segments 
-    std::vector<std::vector<Graph::vertex_descriptor>>& segments ///< the selected segments will be stored in here
+    std::vector<std::vector<Graph::vertex_descriptor>>& segments, ///< the selected segments will be stored in here
+    double tlimit
 )
  {
     GRBEnv env = GRBEnv();
@@ -88,8 +89,8 @@ void master_problem(
 
     // Turn off display and heuristics and enable adding constraints in our callback function
     model.set(GRB_IntParam_OutputFlag, 1); // shut up
-    model.set(GRB_DoubleParam_Heuristics, 0);
-    model.set(GRB_DoubleParam_TimeLimit, 100.0);
+    //model.set(GRB_DoubleParam_Heuristics, 0);
+    model.set(GRB_DoubleParam_TimeLimit, tlimit);
     model.set(GRB_IntParam_LazyConstraints, 1);
 
 		double avgcolor[numseg];
@@ -175,15 +176,16 @@ void master_problem(
  
  
 int main(int argc, char** argv) {
-    if (argc != 4)
+    if (argc != 5)
     {
-        std::cout << "Usage: program input.png input.csv" << std::endl;
+        std::cout << "Usage: program input.png input.csv brush_width timelimit" << std::endl;
         return 1;
     }
     //Image image("swan.png", "swan.csv");
     Image image(argv[1], argv[2]);
 		
-		brushwidth = atoi(argv[3]);
+    brushwidth = atoi(argv[3]);
+    double tlimit = atof(argv[4]);
 
 
     img = imread("superpixels_avgcolor.png");
@@ -219,7 +221,7 @@ int main(int argc, char** argv) {
     std::vector<std::vector<Graph::vertex_descriptor>> segments(master_nodes.size());
     
     // gurobi model and solve
-    master_problem(rag, master_nodes.size(),master_nodes, segments);
+    master_problem(rag, master_nodes.size(), master_nodes, segments, tlimit);
 
 		vector<Graph::vertex_descriptor> master_node;
 		for (int i=0; i<master_nodes.size(); i++)
