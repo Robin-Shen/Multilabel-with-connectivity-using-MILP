@@ -23,6 +23,7 @@ Image::Image(std::string png_file, std::string csv_file)
     height = pngimage.get_height();
     unsigned int imagesize = pngimage.get_width() * pngimage.get_height();
     
+    // image is a vector containing pixel intensity
     float* image = new float[imagesize];
     for (png::uint_32 x = 0; x < pngimage.get_width(); ++x)
     {
@@ -36,35 +37,55 @@ Image::Image(std::string png_file, std::string csv_file)
     //std::vector<int> segmentation(imagesize);
     // use the class var
 
-
-    using namespace std;
-    using namespace boost;
-    string data(csv_file);
-
-    ifstream in(data.c_str());
-    if (!in.is_open()) exit(1);
-
-    typedef tokenizer< escaped_list_separator<char> > Tokenizer;
-    vector< string > vec;
-    vec.clear();
-    string line;
-
-    while (getline(in,line))
+    
+    // segmentation records the label of each pixel
+    //segmentation.resize(vec.size());
+    segmentation.resize(imagesize);
+    
+    
+    // check if no superpixel is provided, we will use the pixel image directly
+    if (csv_file.compare("null") == 0)
     {
+      for (int i=0; i<imagesize; i++)
+	segmentation[i] = i;
+      
+      std::cout << "No superpixels provided!!!!!!!!" << std::endl;
+    }
+    
+    
+    
+    //else, we read the superpixel file
+    else
+    {  
+      using namespace std;
+      using namespace boost;
+      string data(csv_file);
+
+      // read data from csv_file, needs csv to start from label 0, and be consistent
+      ifstream in(data.c_str());
+    
+    
+    
+    
+      if (!in.is_open()) exit(1);
+
+      typedef tokenizer< escaped_list_separator<char> > Tokenizer;
+      vector< string > vec;
+      vec.clear();
+      string line;
+
+      while (getline(in,line))
+      {
         Tokenizer tok(line);
         for (Tokenizer::iterator it(tok.begin()), end(tok.end()); it != end; ++it)
         {
             vec.push_back((*it));
         } 
+      }
+      std::transform (vec.begin(), vec.end(), segmentation.begin(), [](string s) -> int {return stoi(s);});
     }
-    segmentation.resize(vec.size());
-    std::transform (vec.begin(), vec.end(), segmentation.begin(), [](string s) -> int {return stoi(s);});
-    #if 0
-    for(auto it = segmentation.begin(); it != segmentation.end(); ++it) {
-        std::cout << *it << std::endl;
-    }
-
-    #endif
+    
+    
 
 	// relabel the segmentation by -1, if using my csv
 	#if 0
@@ -111,6 +132,8 @@ Image::Image(std::string png_file, std::string csv_file)
     }
     
     png::image<png::gray_pixel> pngimage2(pngimage);
+    // if no superpixels are provided
+    if (csv_file.compare("null") != 0){
     for (png::uint_32 x = 0; x < pngimage.get_width(); ++x)
     {
         for (png::uint_32 y = 0; y < pngimage.get_height(); ++y)
@@ -146,9 +169,15 @@ Image::Image(std::string png_file, std::string csv_file)
             }
         }
     }
+    }
+    
     pngimage.write("superpixels.png");
     pngimage2.write("superpixels_avgcolor.png");
+    
+    
 }
+
+
 
 
 
@@ -157,7 +186,7 @@ Graph Image::graph()
     Graph g(superpixelcount);
     for (auto p = vertices(g); p.first != p.second; ++p.first)
     {
-        g[*p.first].color = avgcolor[*p.first];
+        g[*p.first].color = avgcolor[*p.first]/255.0; // changes here
     }
 
     // store the corresponding pixels for each superpixel
@@ -197,6 +226,7 @@ Graph Image::graph()
     }
     return g;
 }
+
 
 
 
