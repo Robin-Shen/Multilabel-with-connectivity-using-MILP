@@ -27,9 +27,14 @@ struct Superpixel
 {
     double color; ///< color of the superpixel, i.e. the average color of all pixels contained in it
     std::vector<Pixel> pixels; ///< vector of all pixels contained in the superpixel
-    std::vector<GRBVar> var;
+    std::vector< std::vector<GRBVar>> var;
+    double merge_label; // for the l0-gradient-algorithm
 };
 
+
+struct edge_property
+{
+};
 
 
 /**
