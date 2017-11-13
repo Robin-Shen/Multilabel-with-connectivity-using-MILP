@@ -1,10 +1,11 @@
 //#include <vl/slic.h>
-#include "png++/png.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/core/core.hpp"
+#include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 #include <cmath>
 #include "graph.h"
 #include "image.h"
-#include "gurobi_c++.h"
     
 #include <iostream>     // cout, endl
 #include <fstream>      // fstream
@@ -18,85 +19,79 @@
 
 Image::Image(std::string png_file, std::string csv_file)
 {
-    png::image<png::gray_pixel> pngimage(png_file); // greyscale pixels are integers from 0 to 255
-    width = pngimage.get_width();
-    height = pngimage.get_height();
-    unsigned int imagesize = pngimage.get_width() * pngimage.get_height();
+    cv::Mat pngimage = cv::imread( png_file, CV_LOAD_IMAGE_GRAYSCALE ); 
+    cv::Mat pngimage3 = cv::imread( png_file, CV_LOAD_IMAGE_COLOR ); 
+    width = pngimage.size().width;
+    height = pngimage.size().height;
+    unsigned int imagesize =  width * height;
     
-    // image is a vector containing pixel intensity
     float* image = new float[imagesize];
-    for (png::uint_32 x = 0; x < pngimage.get_width(); ++x)
+    for (int x = 0; x < width; ++x)
     {
-        for (png::uint_32 y = 0; y < pngimage.get_height(); ++y)
+        for (int y = 0; y < height; ++y)
         {
-            image[x + y * pngimage.get_width()] = pngimage[y][x] / 255.0; // norm to floats from 0 to 1
+            image[x + y * width] = pngimage.at<uchar>(y, x) / 255.0; // norm to floats from 0 to 1
         }
     }
     
+    
     // segmentation is a list of superpixel labels 
-    //std::vector<int> segmentation(imagesize);
+    
     // use the class var
 
-    
-    // segmentation records the label of each pixel
-    //segmentation.resize(vec.size());
-    segmentation.resize(imagesize);
-    
-    
-    // check if no superpixel is provided, we will use the pixel image directly
+ // check if no superpixel is provided, we will use the pixel image directly
     if (csv_file.compare("null") == 0)
     {
+      segmentation.resize(imagesize);
       for (int i=0; i<imagesize; i++)
 	segmentation[i] = i;
       
       std::cout << "No superpixels provided!!!!!!!!" << std::endl;
     }
-    
-    
-    
     //else, we read the superpixel file
     else
     {  
-      using namespace std;
-      using namespace boost;
-      string data(csv_file);
 
-      // read data from csv_file, needs csv to start from label 0, and be consistent
-      ifstream in(data.c_str());
-    
-    
-    
-    
-      if (!in.is_open()) exit(1);
+	    using namespace std;
+	    using namespace boost;
+	    string data(csv_file);
 
-      typedef tokenizer< escaped_list_separator<char> > Tokenizer;
-      vector< string > vec;
-      vec.clear();
-      string line;
+	    ifstream in(data.c_str());
+	    if (!in.is_open()) exit(1);
 
-      while (getline(in,line))
-      {
-        Tokenizer tok(line);
-        for (Tokenizer::iterator it(tok.begin()), end(tok.end()); it != end; ++it)
-        {
-            vec.push_back((*it));
-        } 
-      }
-      std::transform (vec.begin(), vec.end(), segmentation.begin(), [](string s) -> int {return stoi(s);});
+	    typedef tokenizer <escaped_list_separator<char>> Tokenizer;
+	    vector< string > vec;
+	    vec.clear();
+	    string line;
+
+	    while (getline(in,line))
+	    {
+		Tokenizer tok(line);
+		for (Tokenizer::iterator it(tok.begin()), end(tok.end()); it != end; ++it)
+		{
+		    vec.push_back((*it));
+		} 
+	    }
+	    segmentation.resize(vec.size());
+	    std::transform (vec.begin(), vec.end(), segmentation.begin(), [](string s) -> int {return atoi(s.c_str());});
     }
-    
-    
+    #if 0
+    for(auto it = segmentation.begin(); it != segmentation.end(); ++it) {
+        std::cout << *it << std::endl;
+    }
 
-	// relabel the segmentation by -1, if using my csv
-	#if 0
-	for (png::uint_32 x = 0; x < pngimage.get_width(); ++x)
+    #endif
+
+    // relabel the segmentation by -1, if using my csv
+    #if 0
+	for (unsigned int x = 0; x < width; ++x)
     {
-        for (png::uint_32 y = 0; y < pngimage.get_height(); ++y)
+        for (unsigned int y = 0; y < height; ++y)
         {
-            segmentation[x + y * pngimage.get_width()] -= 1;
+            segmentation[x + y * width] -= 1;
         }
     }
-	#endif
+    #endif
 
     superpixelcount = 0;
     for (size_t i = 0; i < imagesize; ++i)
@@ -106,9 +101,9 @@ Image::Image(std::string png_file, std::string csv_file)
             superpixelcount = segmentation[i];
         }
     }
-    superpixelcount++;
+    superpixelcount++;// because we start with 0
     std::cout << "Generated " << superpixelcount << " superpixels." << std::endl;
-    
+   // relabel superpixels 
 
 	
     avgcolor.resize(superpixelcount, 0.0);
@@ -116,27 +111,27 @@ Image::Image(std::string png_file, std::string csv_file)
     
 	
 
-    for (png::uint_32 x = 0; x < pngimage.get_width(); ++x)
+    for (unsigned int x = 0; x < width; ++x)
     {
-        for (png::uint_32 y = 0; y < pngimage.get_height(); ++y)
+        for (unsigned int y = 0; y < height; ++y)
         {
-            avgcolor[segmentation[x + y * pngimage.get_width()]] += pngimage[y][x];
-            numpixels[segmentation[x + y * pngimage.get_width()]] += 1;
+            avgcolor[segmentation[x + y * width]] += pngimage.at<uchar>(y,x);
+            numpixels[segmentation[x + y * width]] += 1;
         }
     }
     
     for (size_t i = 0; i < superpixelcount; ++i)
     {
-        avgcolor[i] /= numpixels[i];
+        avgcolor[i] /= double(numpixels[i]);
 		//std::cout << "Superpixel " << i << " avgcolor: "<<  avgcolor[i]  << std::endl;
     }
     
-    png::image<png::gray_pixel> pngimage2(pngimage);
-    // if no superpixels are provided
+    cv::Mat pngimage2;
+    pngimage.copyTo(pngimage2);
     if (csv_file.compare("null") != 0){
-    for (png::uint_32 x = 0; x < pngimage.get_width(); ++x)
+    for (unsigned int x = 0; x < width; ++x)
     {
-        for (png::uint_32 y = 0; y < pngimage.get_height(); ++y)
+        for (unsigned int y = 0; y < height; ++y)
         {
             auto current = x + y * width;
             auto right = x + 1 + y * width;
@@ -145,39 +140,38 @@ Image::Image(std::string png_file, std::string csv_file)
             auto above = x + (y - 1) * width;
             if (x + 1 < width && segmentation[current] != segmentation[right])
             {
-                pngimage[y][x] = 0; // set pixel at the border to black
-                pngimage2[y][x] = 0; // set pixel at the border to black
+                pngimage.at<uchar>(y,x) = 0; // set pixel at the border to black
+                pngimage2.at<uchar>(y,x) = 0; // set pixel at the border to black
+                pngimage3.at<cv::Vec3b>(y,x) = cv::Vec3b(0, 0, 0); // colour pixel black
             }
             else if (x >= 1 && segmentation[current] != segmentation[left])
             {
-                pngimage[y][x] = 0; // set pixel at the border to black
-                pngimage2[y][x] = 0; // set pixel at the border to black
+                pngimage.at<uchar>(y,x) = 0; // set pixel at the border to black
+                pngimage2.at<uchar>(y,x) = 0; // set pixel at the border to black
+                pngimage3.at<cv::Vec3b>(y,x) = cv::Vec3b(0, 0, 0); // colour pixel black
             }
             else if (y + 1 < height && segmentation[current] != segmentation[below])
             {
-                pngimage[y][x] = 0; // set pixel at the border to black
-                pngimage2[y][x] = 0; // set pixel at the border to black
+                pngimage.at<uchar>(y,x) = 0; // set pixel at the border to black
+                pngimage2.at<uchar>(y,x) = 0; // set pixel at the border to black
+                pngimage3.at<cv::Vec3b>(y,x) = cv::Vec3b(0, 0, 0); // colour pixel black
             }
             else if (y  >= 1 && segmentation[current] != segmentation[above])
             {
-                pngimage[y][x] = 0; // set pixel at the border to black
-                pngimage2[y][x] = 0; // set pixel at the border to black
+                pngimage.at<uchar>(y,x) = 0; // set pixel at the border to black
+                pngimage2.at<uchar>(y,x) = 0; // set pixel at the border to black
+                pngimage3.at<cv::Vec3b>(y,x) = cv::Vec3b(0, 0, 0); // colour pixel black
             }
             else
             {
-                pngimage2[y][x] = avgcolor[segmentation[x + y * pngimage.get_width()]];
+                pngimage2.at<uchar>(y,x) = avgcolor[segmentation[x + y * width]];
             }
         }
     }
     }
-    
-    pngimage.write("superpixels.png");
-    pngimage2.write("superpixels_avgcolor.png");
-    
-    
+    cv::imwrite( "superpixels.png", pngimage3);
+    cv::imwrite( "superpixels_avgcolor.png", pngimage2);
 }
-
-
 
 
 
@@ -186,22 +180,22 @@ Graph Image::graph()
     Graph g(superpixelcount);
     for (auto p = vertices(g); p.first != p.second; ++p.first)
     {
-        g[*p.first].color = avgcolor[*p.first]/255.0; // changes here
+        g[*p.first].color = avgcolor[*p.first]/255.0;
     }
 
     // store the corresponding pixels for each superpixel
-    for (png::uint_32 x = 0; x < width; ++x)
+    for (unsigned int x = 0; x < width; ++x)
     {
-        for (png::uint_32 y = 0; y < height; ++y)
+        for (unsigned int y = 0; y < height; ++y)
         {
             Graph::vertex_descriptor superpixel = segmentation[x + y * width];
             g[superpixel].pixels.push_back(Pixel{x, y});
         }
     }
     // add edges
-    for (png::uint_32 x = 0; x < width; ++x)
+    for (unsigned int x = 0; x < width; ++x)
     {
-        for (png::uint_32 y = 0; y < height; ++y)
+        for (unsigned int y = 0; y < height; ++y)
         {
             auto current = x + y * width;
             auto right = x + 1 + y * width;
@@ -209,7 +203,7 @@ Graph Image::graph()
             if (x + 1 < width
                 && segmentation[current] != segmentation[right])
             {
-                // add edge to the superpixel on the right
+                // add edge to the superpixel on the right, weight counts the neighboring pixels between two superpixels
                 auto edge = add_edge(segmentation[current], segmentation[right], g); // returns a pair<edge_descriptor, bool>
                 auto weight = boost::get(boost::edge_weight, g, edge.first);
                 boost::put(boost::edge_weight, g, edge.first, weight + 1);
@@ -224,20 +218,25 @@ Graph Image::graph()
             }
         }
     }
+    
+    // initialize .var[l][]
+    for (int i=0; i<superpixelcount; i++)
+      for (int j=0; j<4; j++)
+	g[(Graph::vertex_descriptor)i].var.emplace_back();
+      
     return g;
 }
 
 
 
-
-void Image::writeSegments(std::vector<Graph::vertex_descriptor> master_nodes, std::vector<std::vector<Graph::vertex_descriptor>> segments, Graph& g)
+cv::Mat Image::writeSegments(std::vector<Graph::vertex_descriptor> master_nodes, std::vector<std::vector<Graph::vertex_descriptor>> segments, Graph& g)
 {
     std::vector<std::vector<size_t>> pixeltosegment(height);
     for (size_t i = 0; i < pixeltosegment.size(); ++i)
         pixeltosegment[i].resize(width);
-    for (png::uint_32 x = 0; x < width; ++x)
+    for (unsigned int x = 0; x < width; ++x)
     {
-        for (png::uint_32 y = 0; y < height; ++y)
+        for (unsigned int y = 0; y < height; ++y)
         {
             Graph::vertex_descriptor superpixel = segmentation[x + y*width];
             size_t segment = 0;
@@ -247,10 +246,10 @@ void Image::writeSegments(std::vector<Graph::vertex_descriptor> master_nodes, st
         }
     }
     
-    png::image<png::rgb_pixel> pngimage("superpixels.png");
-    for (png::uint_32 x = 0; x < width; ++x)
+    cv::Mat pngimage = cv::imread( "superpixels.png" , CV_LOAD_IMAGE_COLOR );
+    for (unsigned int x = 0; x < width; ++x)
     {
-        for (png::uint_32 y = 0; y < height; ++y)
+        for (unsigned int y = 0; y < height; ++y)
         {
             // if the pixel is at the boundary of a master node
             if (std::find(master_nodes.begin(), master_nodes.end(), segmentation[x + y*width]) != master_nodes.end()
@@ -263,7 +262,7 @@ void Image::writeSegments(std::vector<Graph::vertex_descriptor> master_nodes, st
                 for(int i = -2; i < 2; ++i) {
                     for(int j = -2; j < 2; ++j) {
                         if(x+j >= 0 && x+j < width && y+i >= 0 && y+i < height)
-                            pngimage[y+i][x+j] = png::rgb_pixel(0, 0, 255); // colour pixel blue
+                            pngimage.at<cv::Vec3b>(y+i,x+j) = cv::Vec3b(0, 0, 255); // colour pixel blue
                     }
                 }
             }
@@ -276,7 +275,7 @@ void Image::writeSegments(std::vector<Graph::vertex_descriptor> master_nodes, st
                 for(int i = -2; i < 2; ++i) {
                     for(int j = -2; j < 2; ++j) {
                         if(x+j >= 0 && x+j < width && y+i >= 0 && y+i < height)
-                            pngimage[y+i][x+j] = png::rgb_pixel(255, 0, 0); // colour pixel at segment boundary red
+                            pngimage.at<cv::Vec3b>(y+i,x+j) = cv::Vec3b(255, 0, 0); // colour pixel at segment boundary red
                     }
                 }
             }
@@ -284,8 +283,10 @@ void Image::writeSegments(std::vector<Graph::vertex_descriptor> master_nodes, st
     }
     
     std::cout << "write segments.png" << std::endl;
-    pngimage.write("segments.png");
-	std::cout << "write segments.png sucess." << std::endl;
+    cv::imwrite( "segments.png", pngimage);
+    std::cout << "write segments.png sucess." << std::endl;
+
+    return pngimage;
 }
 
 

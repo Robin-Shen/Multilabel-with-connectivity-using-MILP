@@ -33,7 +33,7 @@ try {
         for (auto p = vertices(graph); p.first != p.second; ++p.first)
         {
           //root_nodes
-          if(std::abs(getSolution(graph[*p.first].var[itr]) - 1.0) < EPS)
+          if(std::abs(getSolution(graph[*p.first].var[problem][itr]) - 1.0) < EPS)
           	{
 			 add_vertex(*p.first, subgraph);
 			 //std::cout << *p.first << " is equal to 1;" << std::endl;
@@ -97,7 +97,7 @@ try {
           		}
 
 			// find cuts for all components
-        	find_cuts(graph, subgraph, component, itr, num_components, component_num); //store in graph, error tell if it's a bad cut
+        	find_cuts(graph, subgraph, component, itr, num_components, component_num, problem); //store in graph, error tell if it's a bad cut
         } 
 		// free memory
 		//delete &subgraph; 
@@ -116,7 +116,7 @@ try {
 
 
 // find violated constraints for each segment l
-void myGRBCallback::find_cuts(Graph& graph, Graph& subgraph, std::vector<int> component, int itr, int num_components, std::vector<int> component_num)
+void myGRBCallback::find_cuts(Graph& graph, Graph& subgraph, std::vector<int> component, int itr, int num_components, std::vector<int> component_num, int problem)
 {
 
   // find all nodes in root_component
@@ -212,7 +212,7 @@ void myGRBCallback::find_cuts(Graph& graph, Graph& subgraph, std::vector<int> co
 			}
 			else
 		  		{
-				 cons[distance[vertex]-1] += graph[(Graph::vertex_descriptor)vertex].var[itr];
+				 cons[distance[vertex]-1] += graph[(Graph::vertex_descriptor)vertex].var[problem][itr];
 				 //std::cout <<vertex<< " added to cut "<< distance[vertex]-1 <<std::endl;
 				}
 	      }
@@ -224,7 +224,7 @@ void myGRBCallback::find_cuts(Graph& graph, Graph& subgraph, std::vector<int> co
 		//std::cout << "Upper bound is "<<upper_bound<<std::endl;
 	    for (int i=0; i < upper_bound; i++)
 	      for (int j=0; j < superpixels.size(); j++)
-			addLazy( cons[i]>= graph[superpixels[j]].var[itr]);
+			addLazy( cons[i]>= graph[superpixels[j]].var[problem][itr]);
   
       }
 }

@@ -2,6 +2,7 @@
 #define IMAGE_H
 
 #include "graph.h"
+#include <opencv2/imgproc/imgproc.hpp>
 /**
  * Class representing png image
  */
@@ -21,7 +22,7 @@ public:
     /*
      * Writes segements into segments.png
      */
-    void writeSegments(
+    cv::Mat writeSegments(
         std::vector<Graph::vertex_descriptor> master_nodes,  ///< master nodes of all segments 
         std::vector<std::vector<Graph::vertex_descriptor>> segments, ///< optimal segmentation, where each segment is a vector consisting of the superpixels contained in it
         Graph& g ///< the graph of superpixels 
@@ -36,6 +37,8 @@ private:
     std::vector<unsigned int> segmentation;
     std::vector<double> avgcolor;
     std::string filename;
+
+    
 };
 
 #endif
